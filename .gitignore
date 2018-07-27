@@ -1,0 +1,5 @@
+# ignore IntelliJ IDEA config files
+*.iml
+.idea/
+
+target/
