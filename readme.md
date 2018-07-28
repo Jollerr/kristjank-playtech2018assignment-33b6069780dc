@@ -1,5 +1,5 @@
 # hilow-card-game
-My take on test assignment. Working but far from an ideal solution (missing server some important server validations and inefficient way of using data structures). Import as Maven project.
+My take on test assignment. Working but far from an ideal solution. Import as Maven project.
 
 Server:
 1. Run Server.java
