@@ -58,9 +58,14 @@ public class GameServiceImpl extends Thread implements GameService {
                 StartRoundRequest roundRequest = new StartRoundRequest(duration, System.currentTimeMillis(), atomicRoundId.incrementAndGet(), deck.getCurrentCard());
                 serverOutput.writeObject(roundRequest);
 
-                // Waiting for player response for specified duration
-
+                // Waiting for player response
+                long startTime = System.currentTimeMillis();
                 objectRead = clientInput.readObject();
+                long endTime = System.currentTimeMillis();
+                if (endTime - startTime > duration * 1000 + 300) { // if response came in late it's auto-loss
+                    objectRead = new PlayerActionRequest(null);
+                    System.out.println("Round ID: #" + atomicRoundId.get() + " Players response was delayed over countdown timer!");
+                }
 
                 // Analyzing players response
                 if (objectRead instanceof PlayerActionRequest) {
@@ -70,10 +75,6 @@ public class GameServiceImpl extends Thread implements GameService {
                 }
                 // Creating an instance of FinishRoundRequest and sending it to client
                 serverOutput.writeObject(new FinishRoundRequest(atomicRoundId.get(), isPlayerRight));
-//                if(!ready) {
-//                    serverOutput.writeObject("ERROR: You lost because server failed to register your response during countdown!" +
-//                            "\nPlease check your connection!");
-//                }
                 deck.nextCard();
             } catch (Exception e) {
                 System.out.println("A client has disconnected!");
