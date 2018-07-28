@@ -16,7 +16,7 @@ public class Deck {
     }
 
     public void generateNewDeck() {
-        cards = new ArrayList<Card>(); // to randomize order of cards before storing in a LinkedHashSet
+        cards = new ArrayList<Card>(52);
         for (Card card : Card.values()) {
             cards.add(card);
         }
