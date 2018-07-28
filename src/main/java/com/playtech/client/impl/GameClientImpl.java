@@ -21,8 +21,8 @@ public class GameClientImpl implements GameClient {
     private HashMap<String, Card> cards;
 
     public GameClientImpl(Socket socket) throws IOException {
-        serverInput = new ObjectInputStream(socket.getInputStream());
         clientOutput = new ObjectOutputStream(socket.getOutputStream());
+        serverInput = new ObjectInputStream(socket.getInputStream());
         consoleInput = new BufferedReader(new InputStreamReader(System.in));
         cards = createCardsHashMap();
     }
@@ -127,23 +127,20 @@ public class GameClientImpl implements GameClient {
      * @return Thread object
      */
     public Thread createCountdownTimer(int setTime) {
-        return new Thread() {
-            @Override
-            public void run() {
-                int time;
-                time = setTime;
-                while (time > 0) {
-                    System.out.println(time);
-                    try {
-                        sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    time--;
-                }
+        return new Thread(() -> {
+            int time;
+            time = setTime;
+            while (time > 0) {
                 System.out.println(time);
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                time--;
             }
-        };
+            System.out.println(time);
+        });
     }
 
     /**

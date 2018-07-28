@@ -10,8 +10,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class Server {
     public static void main(String[] args) {
-        int serverPort = chooseServerPort();
+        int serverPort = 9090;
         try {
+            serverPort = chooseServerPort();
             ServerSocket serverSocket = new ServerSocket(serverPort);
             AtomicInteger atomicClientsConnected = new AtomicInteger(0);
             AtomicLong atomicRoundId = new AtomicLong(0);
@@ -24,7 +25,8 @@ public class Server {
                 serverThread.start();
             }
         } catch (IOException e) {
-            System.out.println("The port " + serverPort + " is already opened! Please use another port number (0 to 65535)!");
+            System.out.println("The port " + serverPort + " is already opened!");
+            main(null);
         }
     }
 
@@ -32,7 +34,7 @@ public class Server {
      * Asks for a port number from the console until the number passes checks
      * @return port number
      */
-    private static int chooseServerPort() {
+    private static int chooseServerPort() throws IOException {
         int portNumber = 0;
         boolean validPort = false;
         System.out.println("A port number must be chosen! The valid range of ports is 0 - 65536.");
@@ -52,10 +54,7 @@ public class Server {
                 // Checking if port number is listening
                 ServerSocket testSocket = new ServerSocket(portNumber);
                 testSocket.close();
-            } catch (IOException e) {
-                System.out.println("Port " + portNumber + " is not open!");
-                System.out.println("Please try another one!");
-            } catch (Exception e){
+            } catch (NumberFormatException e){
                 System.out.println("Port number must contain number only!");
             }
         }

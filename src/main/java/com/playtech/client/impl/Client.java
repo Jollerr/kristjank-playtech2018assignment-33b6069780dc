@@ -47,7 +47,7 @@ public class Client {
         System.out.println("Trying to connect to the server...");
         InetAddress serverAddress;
         Socket socket;
-        int timeOut = 10000;
+        int timeOut = 15000;
             try {
                 serverAddress = InetAddress.getByName(ipAddress);
                 socket = new Socket(serverAddress, portNumber);

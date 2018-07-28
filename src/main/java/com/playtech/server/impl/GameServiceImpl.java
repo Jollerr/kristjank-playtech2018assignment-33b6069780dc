@@ -12,9 +12,6 @@ import com.playtech.server.api.SetBaseCardResponse;
 import com.playtech.common.Card;
 import java.io.*;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -23,31 +20,30 @@ public class GameServiceImpl extends Thread implements GameService {
     private Socket socket;
     private ObjectOutputStream serverOutput;
     private ObjectInputStream clientInput;
-
     private int duration;
-    private List<Card> cards;
     private AtomicLong atomicRoundId;
     private AtomicInteger atomicClientsConnected;
+    private Deck deck;
+    private Object objectRead;
 
     public GameServiceImpl(Socket socket,AtomicInteger atomicClientsConnected, AtomicLong atomicRoundId) throws IOException {
         this.socket = socket;
         serverOutput = new ObjectOutputStream(socket.getOutputStream());
         clientInput = new ObjectInputStream(socket.getInputStream());
-
         duration = 10;
-        cards = createCardDeck();
         this.atomicRoundId = atomicRoundId;
         this.atomicClientsConnected = atomicClientsConnected;
+        deck = new Deck();
     }
 
     @Override
     public void run() {
         while (socket != null) {
             try {
-                Object objectRead; // player responses will be referenced to this, later will be cast correctly
+                objectRead = null; // player responses will be referenced to this, later will be cast explicitly
                 boolean isPlayerRight = false; // will stay false if player fails to respond
-                if (!isNextBaseCardPossible(cards)) {
-                    addNewCardDeck(cards, createCardDeck());
+                if(!deck.isNextBasePossible()) {
+                    deck.generateNewDeck();
                 }
                 serverOutput.writeObject("Press enter to start a round...");
                 objectRead = clientInput.readObject(); // Waiting for a client response - to continue or set new base card
@@ -57,25 +53,33 @@ public class GameServiceImpl extends Thread implements GameService {
                     SetBaseCardRequest setBaseCardRequest = new SetBaseCardRequest((Card)objectRead);
                     serverOutput.writeObject(setBaseCard(setBaseCardRequest));
                 }
+
                 // Creating an instance of StartRoundRequest and sending it to the client
-                StartRoundRequest roundRequest = new StartRoundRequest(duration, System.currentTimeMillis(), atomicRoundId.incrementAndGet(), cards.get(0));
+                StartRoundRequest roundRequest = new StartRoundRequest(duration, System.currentTimeMillis(), atomicRoundId.incrementAndGet(), deck.getCurrentCard());
                 serverOutput.writeObject(roundRequest);
-                // Waiting for a player action
+
+                // Waiting for player response for specified duration
+
                 objectRead = clientInput.readObject();
+
                 // Analyzing players response
                 if (objectRead instanceof PlayerActionRequest) {
                     if (((PlayerActionRequest) objectRead).getPlayerAction() != null) {
-                        isPlayerRight = isPlayerActionRight((PlayerActionRequest)objectRead, cards);
+                        isPlayerRight = isPlayerActionRight((PlayerActionRequest)objectRead, deck);
                     }
                 }
                 // Creating an instance of FinishRoundRequest and sending it to client
                 serverOutput.writeObject(new FinishRoundRequest(atomicRoundId.get(), isPlayerRight));
+//                if(!ready) {
+//                    serverOutput.writeObject("ERROR: You lost because server failed to register your response during countdown!" +
+//                            "\nPlease check your connection!");
+//                }
+                deck.nextCard();
             } catch (Exception e) {
                 System.out.println("A client has disconnected!");
                 System.out.println("Clients connected: " + atomicClientsConnected.decrementAndGet());
-                this.stop();
+                Thread.currentThread().stop();
             }
-            removeCurrentBaseCard(cards);
         }
     }
 
@@ -86,43 +90,30 @@ public class GameServiceImpl extends Thread implements GameService {
 
     @Override
     public SetBaseCardResponse setBaseCard(SetBaseCardRequest setBaseCardRequest) {
-        cards.set(0, setBaseCardRequest.getBaseCard());
+        deck.setCurrentCard(setBaseCardRequest.getBaseCard());
         return new SetBaseCardResponse("");
-    }
-
-    /**
-     * Creates a list of cards
-     * @return a list of 52 cards
-     */
-    private List createCardDeck() {
-        ArrayList<Card> cards = new ArrayList<>();
-        for(Card card : Card.values()) {
-            cards.add(card);
-            Collections.shuffle(cards);
-        }
-        return cards;
     }
 
     /**
      * Checks if player made the right decision
      * @param playerActionRequest players action
-     * @param cards list of cards
+     * @param deck Object representation of cards
      * @return returns true if the player responded with the correct PlayerAction, otherwise false
      */
-    private boolean isPlayerActionRight(PlayerActionRequest playerActionRequest, List<Card> cards) {
-        PlayerAction rightAction = getRightAction(cards);
+    private boolean isPlayerActionRight(PlayerActionRequest playerActionRequest, Deck deck) {
+        PlayerAction rightAction = getRightAction(deck);
         PlayerAction playerAction = playerActionRequest.getPlayerAction();
         return playerAction.compareTo(rightAction) == 0;
     }
 
     /**
      * Compares the value of current base card to the next base card
-     * @param cards list of cards
+     * @param deck Object representation of cards
      * @return returns enum PlayerAction
      */
-    private PlayerAction getRightAction(List<Card> cards) {
-        CardRank currentBaseCard = cards.get(0).getValue();
-        CardRank nextBaseCard = cards.get(1).getValue();
+    private PlayerAction getRightAction(Deck deck) {
+        CardRank currentBaseCard = deck.getCurrentCard().getValue();
+        CardRank nextBaseCard = deck.getNextExpectedCard().getValue();
         if (currentBaseCard.compareTo(nextBaseCard) > 0) {
             return PlayerAction.LOWER;
         }
@@ -132,29 +123,5 @@ public class GameServiceImpl extends Thread implements GameService {
         return PlayerAction.EQUALS;
     }
 
-    /**
-     * Checks whether next card would be possible
-     * @param cards List
-     * @return returns true if there is more than 1 element left in the list, otherwise false
-     */
-    private boolean isNextBaseCardPossible(List<Card> cards) {
-        return cards.size() > 1;
-    }
 
-    /**
-     * Adds new list of cards to the old list of cards
-     * @param lastCardDeck existing list
-     * @param newDeck new list
-     */
-    private void addNewCardDeck(List<Card> lastCardDeck, List<Card> newDeck) {
-        lastCardDeck.addAll(newDeck);
-    }
-
-    /**
-     * Removes first element from the list of cards
-     * @param cards list that contains cards
-     */
-    private void removeCurrentBaseCard(List<Card> cards) {
-        cards.remove(0);
-    }
 }
