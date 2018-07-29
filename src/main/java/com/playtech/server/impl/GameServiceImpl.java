@@ -26,14 +26,14 @@ public class GameServiceImpl extends Thread implements GameService {
     private Deck deck;
     private Object objectRead;
 
-    public GameServiceImpl(Socket socket,AtomicInteger atomicClientsConnected, AtomicLong atomicRoundId) throws IOException {
+    public GameServiceImpl(Socket socket,AtomicInteger atomicClientsConnected, AtomicLong atomicRoundId, Deck deck) throws IOException {
         this.socket = socket;
         serverOutput = new ObjectOutputStream(socket.getOutputStream());
         clientInput = new ObjectInputStream(socket.getInputStream());
         duration = 10;
         this.atomicRoundId = atomicRoundId;
         this.atomicClientsConnected = atomicClientsConnected;
-        deck = new Deck();
+        this.deck = deck;
     }
 
     @Override

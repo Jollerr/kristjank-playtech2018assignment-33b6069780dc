@@ -21,7 +21,7 @@ public class Server {
                 System.out.println("Clients connected: " + atomicClientsConnected.get());
                 Socket clientSocket = serverSocket.accept();
                 atomicClientsConnected.incrementAndGet();
-                GameServiceImpl serverThread = new GameServiceImpl(clientSocket,atomicClientsConnected, atomicRoundId);
+                GameServiceImpl serverThread = new GameServiceImpl(clientSocket,atomicClientsConnected, atomicRoundId, new Deck());
                 serverThread.start();
             }
         } catch (IOException e) {
